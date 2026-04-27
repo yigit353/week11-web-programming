@@ -20,9 +20,17 @@ In any real deployment you MUST:
   4. Never log the secret, never return it in an error message.
 """
 
+import os
+
 # Signs every JWT we issue. Treat it like a password for the whole system:
 # leaking it lets an attacker mint tokens that impersonate any user.
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+# In production (Railway) SECRET_KEY is set as an environment variable; the
+# fallback below is for local development only and must never be relied on
+# in a deployed environment.
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7",
+)
 
 # HMAC-SHA256 is a symmetric signing algorithm: the same SECRET_KEY both
 # signs and verifies. Asymmetric alternatives (RS256/ES256) are better

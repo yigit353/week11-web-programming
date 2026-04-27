@@ -12,21 +12,35 @@ connection pool, while sessions represent individual database
 conversations (transactions).
 """
 
+import os
+
 from sqlmodel import SQLModel, Session, create_engine
 
 # ---------------------------------------------------------------------------
 # Database Engine Configuration
 # ---------------------------------------------------------------------------
-# We use SQLite for simplicity. The file "bytebooks.db" will be created
-# automatically in the project root the first time the app starts.
+# In production (Railway) we read DATABASE_URL from the environment, which
+# Railway injects automatically when a Postgres plugin is attached. For
+# local development we fall back to a SQLite file so students can run the
+# API without installing Postgres.
 #
-# echo=True prints every SQL statement to the console, which is extremely
-# helpful while learning how ORMs translate Python code into SQL queries.
-# In production you would set echo=False to reduce log noise.
+# Railway historically exposes Postgres URLs as `postgres://...`, but
+# SQLAlchemy 1.4+ requires the explicit `postgresql://` scheme. We rewrite
+# the prefix here so the same code works in both environments.
 # ---------------------------------------------------------------------------
-DATABASE_URL = "sqlite:///bytebooks.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///bytebooks.db")
 
-engine = create_engine(DATABASE_URL, echo=True)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite needs check_same_thread=False because FastAPI handles requests on
+# multiple threads; Postgres does not need it.
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+_connect_args = {"check_same_thread": False} if _is_sqlite else {}
+
+# echo=True is great for learning locally but spams production logs. Disable
+# it whenever we're talking to a non-SQLite (i.e. real) database.
+engine = create_engine(DATABASE_URL, echo=_is_sqlite, connect_args=_connect_args)
 
 
 def create_db_and_tables() -> None:

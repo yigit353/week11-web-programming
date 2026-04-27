@@ -51,6 +51,7 @@ Expected status codes:
   - 504 Gateway Timeout:     External API timed out
 """
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, Response
@@ -119,9 +120,21 @@ app = FastAPI(
 # but our API runs on http://localhost:8000. Without CORS middleware,
 # the browser would block all fetch() requests from the frontend to
 # the API. This middleware tells the browser "it's OK, I trust this origin."
+# In production the deployed frontend lives on a different origin (Vercel),
+# so we read its URL from FRONTEND_URL and add it to the allow-list. Local
+# Vite dev servers stay in the list so the same backend can serve both
+# environments without a config change.
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],  # Vite dev servers (v1 + v2)
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -21,6 +21,7 @@ ENV/
 .env.*
 !.env.development
 !.env.production.example
+!.env.example
 
 # IDE
 .idea/
